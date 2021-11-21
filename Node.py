@@ -1,7 +1,7 @@
 import numpy as np
 
 class Node(object):
-    def __init__(self, name, index, depth):
+    def __init__(self, index, name, depth):
         """
         construction of node 
         need to at least know the name

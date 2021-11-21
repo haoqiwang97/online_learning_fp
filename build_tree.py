@@ -1,3 +1,4 @@
+import random
 import numpy as np
 from Node import Node
 
@@ -6,8 +7,31 @@ def build_tree(items=None, dist_lookup=None, b=0, L=0):
     input: items(name), distance of items, b, depth L
     output: a hierchical tree
     """
-
-    return 
+    index_name = [(idx, item) for idx,item in enumerate(items)]
+    visited_lower = list(np.arange(len(index_name)))
+    C_lower = []
+    for item in index_name:
+        C_lower.append(Node(item[0], item[1], L))
+    for i in range(L-1):
+        l=L-i
+        C_higher = []
+        while len(visited_lower)>0:
+            idx = random.choice(visited_lower)
+            new_node = Node(C_lower[idx].index, C_lower[idx].name, C_lower[idx].depth-1)
+            visited_lower.remove(idx)
+            for i in range(len(C_lower)):
+                c = C_lower[i]
+                try:
+                    if dist_lookup[c.name][new_node.name] < (1-b)*b**l/(1+b) and i in visited_lower:
+                        new_Node.add_child(c)
+                        c.add_parent(new_Node)
+                    visited_lower.remove(i)
+                except:
+                    pass
+            C_higher.append(new_node)
+        C_lower=C_higher
+        visited_lower=list(np.arange(len(C_lower)))
+    return C_higher 
 
 def build_dist_lookup(data):
     """
@@ -19,13 +43,11 @@ def build_dist_lookup(data):
     for d in data:
         if d[0] not in dists.keys():
             dists[d[0]] = {}
-        else:
-            dists[d[0]][d[1]] = float(d[2])
-        # undirected, so add distance from another direction
-        if d[1] not in dists.keys():
+        elif d[1] not in dists.keys():
             dists[d[1]] = {}
         else:
             dists[d[1]][d[0]] = float(d[2])
+            dists[d[0]][d[1]] = float(d[2])
 
     return dists
 
@@ -35,5 +57,4 @@ if __name__ == '__main__':
     data = data.values.tolist()[1:] 
     dist_lookup = build_dist_lookup(data)
     items = sorted(list(dist_lookup.keys()))
-    from IPython import embed; embed()
     build_tree(items, dist_lookup, b=0.6, L=3)
