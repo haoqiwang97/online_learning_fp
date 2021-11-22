@@ -21,7 +21,7 @@ def build_tree(items=None, dist_lookup=None, b=0, L=0):
             visited_lower.remove(idx)
             for i in range(len(C_lower)):
                 c = C_lower[i]
-                threshold = (1-b)*b**l/(1+b)
+                #threshold = (1-b)*b**l/(1+b) used by the original paper, but it does not help return the only-one result in the highest layer
                 if c.name!=new_node.name and dist_lookup[c.name][new_node.name] <= b**(l-1) and i in visited_lower:
                     new_node.add_child(c)
                     c.set_parent(new_node)
