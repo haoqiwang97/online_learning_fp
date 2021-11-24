@@ -20,7 +20,7 @@ class Node(object):
         
     def __repr__(self):
         # return "layer_id=" + repr(self.layer_id) + ";\nnode_id=" + repr(self.node_id) + ";\nparent=" + repr(self.parent) + ";\nchildren=" + repr(self.children)
-        return "layer_id=" + repr(self.depth) + ";\nnode_id=" + repr(self.index) + ";\nparent=" + repr(self.parent) + ";\nchildren=" + repr(self.children)
+        return "layer_id=" + repr(self.depth) + ";\nnode_id=" + repr(self.index)# + ";\nparent=" + repr(self.parent) + ";\nchildren=" + repr(self.children)
 
     def __str__(self):
         return self.__repr__()    
