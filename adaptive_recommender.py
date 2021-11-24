@@ -108,7 +108,7 @@ class AdaptiveRecommender(object):
             possible_items = node_selected.get_items()
             item_recommended = rng.choice(possible_items)
             
-            reward = self.get_reward(item_recommended)
+            reward = 1 - self.get_loss(item_recommended)
 
             self.update_stats(t, layer_id, node_selected_id, None, reward)
                 
