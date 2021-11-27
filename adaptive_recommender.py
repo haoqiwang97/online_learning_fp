@@ -85,7 +85,7 @@ class AdaptiveRecommender(object):
                 child_node_selected_id = rng.choice(node_selected.n_children)
                 
                 # randomly recommend an item in child node
-                possible_items = node_selected.children[child_node_selected_id].get_items() # TODO: tree has function of get_items, which return all the image items in this node
+                possible_items = node_selected.children[child_node_selected_id].items # TODO: tree has function of items, which return all the image items in this node
                 item_recommended = rng.choice(possible_items)
                 
                 # TODO: get reward from look-up table, or human
@@ -105,7 +105,7 @@ class AdaptiveRecommender(object):
             node_selected_id = np.argmax(bound_list)
             node_selected = self.tree.get_node(layer_id, node_selected_id)
             # randomly recommend item
-            possible_items = node_selected.get_items()
+            possible_items = node_selected.items
             item_recommended = rng.choice(possible_items)
             
             reward = 1 - self.get_loss(item_recommended)
