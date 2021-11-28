@@ -17,13 +17,13 @@ class Node(object):
         self.layer_id = layer_id  # layer_id
         self.node_id = node_id  # node_id
         self.parent = None
-        self.children = []  # TODO: last layer does not have child
+        self.children = []  # last layer does not have child
         self.name = name
 
     def _restart_node(self):
         self.n_plays = 0
         self.emp_mean = 0
-        self.bound = 0  # index is upper bound value
+        self.bound = 0  # TODO: Q1_UCB_EE381V.ipynb set 1e5*np.ones(self.num_arms), index is upper bound value
 
     def add_child(self, child):
         self.children.append(child)
@@ -62,7 +62,6 @@ class Node(object):
 
 class ExpTree(object):
     def __init__(self, b, n_layers, dist_lookup):
-        # self.distance_mt = distance_mt
         self.b = b
         self.n_layers = n_layers  # depth of tree
         self.dist_lookup = dist_lookup
@@ -73,21 +72,20 @@ class ExpTree(object):
         input: items(name), distance of items, b in (0.5, 1), depth L
         output: a hierchical tree
         """
-        # items = sorted(list(self.dist_lookup.keys()))
+        
+        # item_names = sorted(list(dist_lookup.keys()))
+        dist_lookup = self.dist_lookup
         item_names = sorted(list(dist_lookup.keys()))
-        # dist_lookup = self.dist_lookup
         b = self.b
         n_layers = self.n_layers
 
         rng = np.random.default_rng(1)
-        #print(dist_lookup)
         # TODO: find Lb
         # make a class of lookup table, only pass in the instance
-        # index_name = [(idx, item) for idx, item in enumerate(item_names)]
+
         visited_lower = list(np.arange(len(item_names)))
         C_lower = []
-        # for item in index_name:
-        #     C_lower.append(Node(n_layers, item[0], item[1]))
+
         # build bottom layer
         for idx, item_name in enumerate(item_names):
             C_lower.append(Node(n_layers-1, idx, item_name))
@@ -98,15 +96,13 @@ class ExpTree(object):
             node_id = 0 # counter for the number of nodes at layer
             while len(visited_lower) > 0:  # node
                 idx = rng.choice(visited_lower)  # arbitrary select an element
-                # new_node = Node(C_lower[idx].layer_id-1,
-                #                 C_lower[idx].node_id, C_lower[idx].name)
                 
                 new_node = Node(C_lower[idx].layer_id-1, # 1 layer up
                                 node_id, # node_id start from 0
                                 C_lower[idx].name) 
                 node_id += 1
-                #visited_lower.remove(idx)
-                for j in range(len(C_lower)):  # TODO: map between name and index
+
+                for j in range(len(C_lower)):
                     c = C_lower[j]
                     #threshold = (1-b)*b**l/(1+b) used by the original paper, but it does not help return the only-one result in the highest layer
                     if dist_lookup[c.name][new_node.name] <= b**(l-1) and j in visited_lower:
@@ -125,12 +121,10 @@ class ExpTree(object):
         self._get_all_layers()
 
     def get_layer(self, layer_id):
-        # TODO: name should be index, not item namesS
         # return list of nodes at layer_id
         return self._all_layers[layer_id]
     
     def _get_all_layers(self):
-        # TODO: name should be index, not item namesS
         result = []
 
         def helper(root, layer_id):
@@ -144,7 +138,6 @@ class ExpTree(object):
         helper(self.tree_stru, 0)
         self._all_layers = result
         
-    # TODO: NUMBER OF nodes at layer l
     def get_node(self, layer_id, node_id):
         return self._all_layers[layer_id][node_id]
 
