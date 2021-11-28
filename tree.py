@@ -61,20 +61,20 @@ class Node(object):
 
 
 class ExpTree(object):
-    def __init__(self, b, n_layers):
+    def __init__(self, b, n_layers, dist_lookup):
         # self.distance_mt = distance_mt
-        #self.dist_lookup = dist_lookup
         self.b = b
         self.n_layers = n_layers  # depth of tree
+        self.dist_lookup = dist_lookup
         # A, constant like 2 in UCB in square root
 
-    def build_tree(self, dist_lookup):
+    def build_tree(self):
         """
         input: items(name), distance of items, b in (0.5, 1), depth L
         output: a hierchical tree
         """
         # items = sorted(list(self.dist_lookup.keys()))
-        items = sorted(list(dist_lookup.keys()))
+        item_names = sorted(list(dist_lookup.keys()))
         # dist_lookup = self.dist_lookup
         b = self.b
         n_layers = self.n_layers
@@ -83,19 +83,28 @@ class ExpTree(object):
         #print(dist_lookup)
         # TODO: find Lb
         # make a class of lookup table, only pass in the instance
-        index_name = [(idx, item) for idx, item in enumerate(items)]
-        visited_lower = list(np.arange(len(index_name)))
+        # index_name = [(idx, item) for idx, item in enumerate(item_names)]
+        visited_lower = list(np.arange(len(item_names)))
         C_lower = []
-        for item in index_name:
-            C_lower.append(Node(n_layers, item[0], item[1]))
+        # for item in index_name:
+        #     C_lower.append(Node(n_layers, item[0], item[1]))
+        # build bottom layer
+        for idx, item_name in enumerate(item_names):
+            C_lower.append(Node(n_layers-1, idx, item_name))
+            
         for i in range(n_layers-1):  # layer
             l = n_layers-i-1
             C_higher = []
-            # TODO: k = 0
+            node_id = 0 # counter for the number of nodes at layer
             while len(visited_lower) > 0:  # node
                 idx = rng.choice(visited_lower)  # arbitrary select an element
-                new_node = Node(C_lower[idx].layer_id-1,
-                                C_lower[idx].node_id, C_lower[idx].name)
+                # new_node = Node(C_lower[idx].layer_id-1,
+                #                 C_lower[idx].node_id, C_lower[idx].name)
+                
+                new_node = Node(C_lower[idx].layer_id-1, # 1 layer up
+                                node_id, # node_id start from 0
+                                C_lower[idx].name) 
+                node_id += 1
                 #visited_lower.remove(idx)
                 for j in range(len(C_lower)):  # TODO: map between name and index
                     c = C_lower[j]
@@ -108,9 +117,9 @@ class ExpTree(object):
                 C_higher.append(new_node)
             C_lower = C_higher
             visited_lower = list(np.arange(len(C_lower)))
-            print("Level {}".format(l))
-            for c in C_higher:
-                print(c.name)
+            # print("Level {}".format(l))
+            # for c in C_higher:
+            #     print(c.name)
 
         self.tree_stru = C_higher[0]
         self._get_all_layers()
@@ -148,6 +157,18 @@ class ExpTree(object):
             for child in root.children:
                 helper(child, layer_id + 1)
         helper(self.tree_stru, 0)
+        
+    def print_tree(self):
+        def helper(root, layer_id):
+            if not root:
+                return []
+            if layer_id == 0:
+                print(' ' * 4 * layer_id + '->', root.name)
+            if layer_id > 0:
+                print(' ' * 4 * layer_id + '->', root.name, round(self.dist_lookup[root.name][root.parent.name], 3))
+            for child in root.children:
+                helper(child, layer_id + 1)
+        helper(self.tree_stru, 0)        
 
 
 def build_dist_lookup(data, normalization=True):
@@ -185,9 +206,10 @@ if __name__ == '__main__':
     data = data.values.tolist()[1:]
     dist_lookup = build_dist_lookup(data)
 
-    exptree = ExpTree(b=0.6, n_layers=4)
-    exptree.build_tree(dist_lookup)
+    exptree = ExpTree(b=0.6, n_layers=4, dist_lookup=dist_lookup)
+    exptree.build_tree()
     exptree.get_layer(1)
     exptree.get_node(2, 1).children
     exptree.get_node(2, 1).n_children
     exptree._restart_tree()
+    exptree.print_tree()
