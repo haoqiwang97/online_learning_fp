@@ -20,9 +20,9 @@ class Node(object):
         self.children = []  # TODO: last layer does not have child
         self.name = name
 
-    def _restart(self):
+    def _restart_node(self):
         self.n_plays = 0
-        self.emp_means = 0
+        self.emp_mean = 0
         self.bound = 0  # index is upper bound value
 
     def add_child(self, child):
@@ -54,27 +54,28 @@ class Node(object):
     def __repr__(self):
         # return "layer_id=" + repr(self.layer_id) + ";\nnode_id=" + repr(self.node_id) + ";\nparent=" + repr(self.parent) + ";\nchildren=" + repr(self.children)
         # + ";\nparent=" + repr(self.parent) + ";\nchildren=" + repr(self.children)
-        return "layer_id=" + repr(self.layer_id) + ";\nnode_id=" + repr(self.node_id)
+        return "layer_id=" + repr(self.layer_id) + "\nnode_id=" + repr(self.node_id)
 
     def __str__(self):
         return self.__repr__()
 
 
 class ExpTree(object):
-    def __init__(self, dist_lookup, b, n_layers):
+    def __init__(self, b, n_layers):
         # self.distance_mt = distance_mt
-        self.dist_lookup = dist_lookup
+        #self.dist_lookup = dist_lookup
         self.b = b
         self.n_layers = n_layers  # depth of tree
         # A, constant like 2 in UCB in square root
 
-    def build_tree(self):
+    def build_tree(self, dist_lookup):
         """
         input: items(name), distance of items, b in (0.5, 1), depth L
         output: a hierchical tree
         """
-        items = sorted(list(self.dist_lookup.keys()))
-        dist_lookup = self.dist_lookup
+        # items = sorted(list(self.dist_lookup.keys()))
+        items = sorted(list(dist_lookup.keys()))
+        # dist_lookup = self.dist_lookup
         b = self.b
         n_layers = self.n_layers
 
@@ -111,17 +112,42 @@ class ExpTree(object):
             for c in C_higher:
                 print(c.name)
 
-        self.tree = C_higher[0]
+        self.tree_stru = C_higher[0]
+        self._get_all_layers()
 
     def get_layer(self, layer_id):
-        pass
+        # TODO: name should be index, not item namesS
+        # return list of nodes at layer_id
+        return self._all_layers[layer_id]
+    
+    def _get_all_layers(self):
+        # TODO: name should be index, not item namesS
+        result = []
 
+        def helper(root, layer_id):
+            if not root:
+                return []
+            if len(result) == layer_id:
+                result.append([])
+            result[layer_id].append(root)
+            for child in root.children:
+                helper(child, layer_id + 1)
+        helper(self.tree_stru, 0)
+        self._all_layers = result
+        
     # TODO: NUMBER OF nodes at layer l
     def get_node(self, layer_id, node_id):
-        pass
+        return self._all_layers[layer_id][node_id]
 
-    def restart():
-        pass
+    def _restart_tree(self):
+        # iterate all the nodes and restart
+        def helper(root, layer_id):
+            if not root:
+                return []
+            root._restart_node()
+            for child in root.children:
+                helper(child, layer_id + 1)
+        helper(self.tree_stru, 0)
 
 
 def build_dist_lookup(data, normalization=True):
@@ -130,11 +156,14 @@ def build_dist_lookup(data, normalization=True):
     It is undirected 
     In the form of [node1][node2][distance]
     """
-    dists = {}
-    max_dist = 0
-    for d in data:
-        max_dist = max(max_dist, float(d[2]))
+    if normalization:
+        max_dist = 0
+        for d in data:
+            max_dist = max(max_dist, float(d[2]))
+    else:
+        max_dist = 1.0
 
+    dists = {}
     for d in data:
         if d[0] not in dists.keys():
             dists[d[0]] = {}
@@ -156,5 +185,9 @@ if __name__ == '__main__':
     data = data.values.tolist()[1:]
     dist_lookup = build_dist_lookup(data)
 
-    exptree = ExpTree(dist_lookup, b=0.6, n_layers=4)
-    exptree.build_tree()
+    exptree = ExpTree(b=0.6, n_layers=4)
+    exptree.build_tree(dist_lookup)
+    exptree.get_layer(1)
+    exptree.get_node(2, 1).children
+    exptree.get_node(2, 1).n_children
+    exptree._restart_tree()
