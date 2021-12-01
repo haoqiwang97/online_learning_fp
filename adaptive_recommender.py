@@ -17,7 +17,7 @@ class User(object):
         
         
 
-class AdaptiveRecommender(object):
+class AdaptiveRecommenderSong(object):
     def __init__(self, exptree, time_horizon, user=None, ground_truth=None, test=True):
         # self.dist_lookup = dist_lookup
         self.tree = exptree
@@ -66,6 +66,7 @@ class AdaptiveRecommender(object):
             child_node_selected.bound = child_node_selected.emp_mean + np.sqrt(A_s * np.log(t) / child_node_selected.n_plays)
             
         # update all children
+        
     def update_regret(self, item_recommended):
         # record cumulative regret
         self.cum_regret += self.tree.dist_lookup[self.ground_truth][item_recommended]
@@ -130,3 +131,122 @@ class AdaptiveRecommender(object):
             self.update_stats(t, layer_id, node_selected_id, None, reward)
             self.update_regret(item_recommended)            
 
+
+class AdaptiveRecommender(object):
+    def __init__(self, exptree, time_horizon, user=None, ground_truth=None, test=True):
+        # self.dist_lookup = dist_lookup
+        self.tree = exptree
+        # self.user = self.user
+        # self.tree = self.filter_context()
+        self.time_horizon = time_horizon
+        
+        self.n_epochs = min(self.tree.n_layers, np.log2(self.time_horizon)) # the tree has attribute: n_layers, the total number of layers, -1 so that start from 0
+        
+        self.ground_truth = ground_truth # ground_truth is known for testing, for real experiment with human, we do not know
+        
+        self.test = test # whether it is testing or doing experiment with human
+        
+        self._restart()
+        
+    def _restart(self):
+        self.tree._restart_tree() # set all n_plays, emp_mean, bound 0
+        self.cum_regret = 0.0
+    
+    def filter_context(self):
+        # TODO: future, return a trimmed tree, rule out impossible items
+        # use self.user and self.tree
+        pass
+    
+    def update_stats(self, t, layer_id, node_selected_id, reward):
+        A_s = 2 # A_s is the exploration_exploitation trade-off factor, here use UCB factor
+        # node_selected = self.tree.get_node(layer_id, node_selected_id)
+        # node_selected.n_plays += 1 # node has attribute n_plays, initial value is 0
+        # node_selected.emp_mean = (node_selected.emp_mean * max(1, node_selected.n_plays-1) + reward)/node_selected.n_plays # node has attribute emp_mean, initial value is 0
+        
+        # option 1, Linqi Song
+        # node_selected.bound = node_selected.emp_mean + np.sqrt(A_s * np.log(t) / node_selected.n_plays) # each node has attribute bound
+        
+        # option 2, UCB
+        # ft = 1 + t * np.log(t) * np.log(t)
+        # node_selected.bound = node_selected.emp_mean + np.sqrt(A_s * np.log(ft) / node_selected.n_plays)
+        
+        # option 3
+        # node_selected.bound = node_selected.emp_mean
+        
+        # update all children
+        def helper(root, layer_id):
+            if not root:
+                return []
+            root.n_plays += 1
+            root.emp_mean = (root.emp_mean * max(1, root.n_plays-1) + reward)/root.n_plays
+            root.bound = root.emp_mean + np.sqrt(A_s * np.log(t) / root.n_plays)
+            for child in root.children:
+                helper(child, layer_id + 1)
+        node_selected = self.tree.get_node(layer_id, node_selected_id)
+        helper(node_selected, 0)
+        
+        
+        
+        
+    def update_regret(self, item_recommended):
+        # record cumulative regret
+        self.cum_regret += self.tree.dist_lookup[self.ground_truth][item_recommended]
+        # TODO: for human, we have no ground_truth, maybe simply add all the rewards?
+        
+    def get_loss(self, item_recommended):
+        if self.test:
+            return self.tree.dist_lookup[self.ground_truth][item_recommended] + np.random.default_rng().standard_normal() * 0.01
+            # return self.tree.dist_lookup[self.ground_truth][item_recommended]
+        else:
+            loss = input("How close is this image to your thought: ")
+            # larger distance = bad prediction = larger loss
+            return float(loss)
+        
+    def run(self):
+        rng = np.random.default_rng(1)
+        for layer_id in range(0, self.n_epochs-1):
+            partitions = self.tree.get_layer(layer_id) # the tree has function, input layer id, output all the nodes at layer id in a list
+            # if layer_id == 0: # first big cluster
+            #     partitions[0].bound = 0 # each node has attribute bound
+            for t in range(int(2**layer_id), int(2**(layer_id+1))):
+                # select cluster
+                bound_list = [partitions[i].bound for i in range(len(partitions))]
+                node_selected_id = np.argmax(bound_list)
+                node_selected = self.tree.get_node(layer_id, node_selected_id) # the tree has function, input layer id and node id, output the node
+                
+                # randomly recommend an item in node
+                possible_items = node_selected.items # tree has attribute of items, which return all the image items in this node
+                item_recommended = rng.choice(possible_items)
+                print("epoch =", layer_id, "\niteration =", t, "\nrecommend node =", node_selected_id, "\nrecommend item =", item_recommended)
+                
+                # get reward from look-up table, or human
+                reward = 1 - self.get_loss(item_recommended) # reward or loss
+                print("reward =", round(reward, 3))
+                # update parameters
+                self.update_stats(t, layer_id, node_selected_id, reward)
+                self.update_regret(item_recommended)
+                print("regret =", self.cum_regret)
+                
+        layer_id = self.n_epochs - 1
+        partitions = self.tree.get_layer(layer_id)
+        
+        for t in range(2**layer_id, self.time_horizon):
+            # should reach the last layer
+            # select cluster
+            bound_list = [partitions[i].bound for i in range(len(partitions))]
+            
+            node_selected_id = np.argmax(bound_list)
+            node_selected = self.tree.get_node(layer_id, node_selected_id)
+            # randomly recommend item
+            possible_items = node_selected.items
+            item_recommended = rng.choice(possible_items)
+            print("epoch =", layer_id, "\niteration =", t, "\nrecommend node =", node_selected_id, "\nrecommend item =", item_recommended)
+
+            
+            reward = 1 - self.get_loss(item_recommended)
+            print("reward =", round(reward, 3))
+            
+            self.update_stats(t, layer_id, node_selected_id, reward)
+            self.update_regret(item_recommended)
+            
+# TODO: update selected child's children?

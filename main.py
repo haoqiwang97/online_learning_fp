@@ -20,11 +20,17 @@ exptree = ExpTree(b=0.6, n_layers=4, dist_lookup=dist_lookup)
 exptree.build_tree()
 #exptree.print_tree()
 
-recommender = AdaptiveRecommender(exptree=exptree,
-                                  time_horizon=1000,
+recommender = AdaptiveRecommenderSong(exptree=exptree,
+                                  time_horizon=10000,
                                   user=None,
                                   ground_truth='I_2055',
                                   test=True)
+
+# recommender = AdaptiveRecommender(exptree=exptree,
+#                                   time_horizon=10000,
+#                                   user=None,
+#                                   ground_truth='I_2055',
+#                                   test=True)
 
 recommender.run()
 
