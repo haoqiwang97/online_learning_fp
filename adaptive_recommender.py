@@ -47,14 +47,25 @@ class AdaptiveRecommender(object):
         node_selected = self.tree.get_node(layer_id, node_selected_id)
         node_selected.n_plays += 1 # node has attribute n_plays, initial value is 0
         node_selected.emp_mean = (node_selected.emp_mean * max(1, node_selected.n_plays-1) + reward)/node_selected.n_plays # node has attribute emp_mean, initial value is 0
+        
+        # option 1, Linqi Song
         node_selected.bound = node_selected.emp_mean + np.sqrt(A_s * np.log(t) / node_selected.n_plays) # each node has attribute bound
         
+        # option 2, UCB
+        # ft = 1 + t * np.log(t) * np.log(t)
+        # node_selected.bound = node_selected.emp_mean + np.sqrt(A_s * np.log(ft) / node_selected.n_plays)
+        
+        # option 3
+        # node_selected.bound = node_selected.emp_mean
+        
+        # only update the child level
         if child_node_selected_id:
             child_node_selected = self.tree.get_node(layer_id+1, child_node_selected_id)
             child_node_selected.n_plays += 1
             child_node_selected.emp_mean = (child_node_selected.emp_mean * max(1, child_node_selected.n_plays-1) + reward)/child_node_selected.n_plays
             child_node_selected.bound = child_node_selected.emp_mean + np.sqrt(A_s * np.log(t) / child_node_selected.n_plays)
             
+        # update all children
     def update_regret(self, item_recommended):
         # record cumulative regret
         self.cum_regret += self.tree.dist_lookup[self.ground_truth][item_recommended]
@@ -73,12 +84,11 @@ class AdaptiveRecommender(object):
         rng = np.random.default_rng(1)
         for layer_id in range(0, self.n_epochs-1):
             partitions = self.tree.get_layer(layer_id) # the tree has function, input layer id, output all the nodes at layer id in a list
-            if layer_id == 0: # first big cluster
-                partitions[0].bound = 0 # each node has attribute bound
-            
-            bound_list = [partitions[i].bound for i in range(len(partitions))]
+            # if layer_id == 0: # first big cluster
+            #     partitions[0].bound = 0 # each node has attribute bound
             for t in range(int(2**layer_id), int(2**(layer_id+1))):
                 # select cluster
+                bound_list = [partitions[i].bound for i in range(len(partitions))]
                 node_selected_id = np.argmax(bound_list)
                 node_selected = self.tree.get_node(layer_id, node_selected_id) # the tree has function, input layer id and node id, output the node
                 
@@ -88,7 +98,7 @@ class AdaptiveRecommender(object):
                 # randomly recommend an item in child node
                 possible_items = node_selected.children[child_node_selected_id].items # tree has attribute of items, which return all the image items in this node
                 item_recommended = rng.choice(possible_items)
-                print("epoch =", layer_id, "\niteration =", t, "\nrecommend =", item_recommended)
+                print("epoch =", layer_id, "\niteration =", t, "\nrecommend node =", node_selected_id, "\nrecommend item =", item_recommended)
                 
                 # get reward from look-up table, or human
                 reward = 1 - self.get_loss(item_recommended) # reward or loss
@@ -100,16 +110,19 @@ class AdaptiveRecommender(object):
                 
         layer_id = self.n_epochs - 1
         partitions = self.tree.get_layer(layer_id)
-        bound_list = [partitions[i].bound for i in range(len(partitions))]
+        
         for t in range(2**layer_id, self.time_horizon):
             # should reach the last layer
             # select cluster
+            bound_list = [partitions[i].bound for i in range(len(partitions))]
+            
             node_selected_id = np.argmax(bound_list)
             node_selected = self.tree.get_node(layer_id, node_selected_id)
             # randomly recommend item
             possible_items = node_selected.items
             item_recommended = rng.choice(possible_items)
-            print("epoch =", layer_id, "\niteration =", t, "\nrecommend =", item_recommended)
+            print("epoch =", layer_id, "\niteration =", t, "\nrecommend node =", node_selected_id, "\nrecommend item =", item_recommended)
+
             
             reward = 1 - self.get_loss(item_recommended)
             print("reward =", round(reward, 3))

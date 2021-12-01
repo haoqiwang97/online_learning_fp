@@ -23,7 +23,7 @@ class Node(object):
     def _restart_node(self):
         self.n_plays = 0
         self.emp_mean = 0
-        self.bound = 0  # TODO: Q1_UCB_EE381V.ipynb set 1e5*np.ones(self.num_arms), index is upper bound value
+        self.bound = 1e5 #0  # TODO: Q1_UCB_EE381V.ipynb set 1e5*np.ones(self.num_arms), index is upper bound value
 
     def add_child(self, child):
         self.children.append(child)
@@ -54,7 +54,7 @@ class Node(object):
     def __repr__(self):
         # return "layer_id=" + repr(self.layer_id) + ";\nnode_id=" + repr(self.node_id) + ";\nparent=" + repr(self.parent) + ";\nchildren=" + repr(self.children)
         # + ";\nparent=" + repr(self.parent) + ";\nchildren=" + repr(self.children)
-        return "layer_id=" + repr(self.layer_id) + "\nnode_id=" + repr(self.node_id)
+        return "layer_id=" + repr(self.layer_id) + "\nnode_id=" + repr(self.node_id) + "\nn_plays=" + repr(self.n_plays) + "\nemp_mean=" + repr(self.emp_mean) + "\nbound=" + repr(self.bound)
 
     def __str__(self):
         return self.__repr__()
