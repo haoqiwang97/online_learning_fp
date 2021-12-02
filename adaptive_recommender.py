@@ -25,7 +25,7 @@ class AdaptiveRecommenderSong(object):
         # self.tree = self.filter_context()
         self.time_horizon = time_horizon
         
-        self.n_epochs = min(self.tree.n_layers, np.log2(self.time_horizon)) # the tree has attribute: n_layers, the total number of layers, -1 so that start from 0
+        self.n_epochs = min(self.tree.n_layers, int(np.log2(self.time_horizon))) # the tree has attribute: n_layers, the total number of layers, -1 so that start from 0
         
         self.ground_truth = ground_truth # ground_truth is known for testing, for real experiment with human, we do not know
         
@@ -249,4 +249,4 @@ class AdaptiveRecommender(object):
             self.update_stats(t, layer_id, node_selected_id, reward)
             self.update_regret(item_recommended)
             
-# TODO: update selected child's children?
+# TODO: update selected child's children? update selected item?
