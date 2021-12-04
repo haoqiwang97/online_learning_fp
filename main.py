@@ -26,7 +26,7 @@ def parse_args():
 args = parse_args()
 print(args)
 
-data = pd.read_excel('data/NOUN_Sorting_Tables.xlsx', usecols=[1, 2, 3])
+data = pd.read_excel(args.data_path, usecols=[1, 2, 3])
 data = data.values.tolist()[1:]
 dist_lookup = build_dist_lookup(data)
 
