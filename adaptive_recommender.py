@@ -6,6 +6,7 @@ Created on Tue Nov 23 16:46:02 2021
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 class User(object):
@@ -36,6 +37,9 @@ class AdaptiveRecommenderSong(object):
     def _restart(self):
         self.tree._restart_tree() # set all n_plays, emp_mean, bound 0
         self.cum_regret = 0.0
+        
+        self.cum_regret_list = []
+        self.cum_regret_list.append(self.cum_regret)
     
     def filter_context(self):
         # TODO: future, return a trimmed tree, rule out impossible items
@@ -70,6 +74,7 @@ class AdaptiveRecommenderSong(object):
     def update_regret(self, item_recommended):
         # record cumulative regret
         self.cum_regret += self.tree.dist_lookup[self.ground_truth][item_recommended]
+        self.cum_regret_list.append(self.cum_regret)
         # TODO: for human, we have no ground_truth, maybe simply add all the rewards?
         
     def get_loss(self, item_recommended):
@@ -129,7 +134,14 @@ class AdaptiveRecommenderSong(object):
             print("reward =", round(reward, 3))
             
             self.update_stats(t, layer_id, node_selected_id, None, reward)
-            self.update_regret(item_recommended)            
+            self.update_regret(item_recommended)
+            
+    def plot_regret(self):
+        # TODO: two plots
+        fig, ax = plt.subplots()
+        ax.plot(np.arange(self.time_horizon), self.cum_regret_list)
+        ax.set(xlabel='Time', ylabel='Cumulative Regret', title='Cumulative Regret')
+        return fig
 
 
 class AdaptiveRecommender(object):
