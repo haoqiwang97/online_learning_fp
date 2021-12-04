@@ -16,8 +16,77 @@ class User(object):
         self.race = race
         self.ethnicity = ethnicity
         
+
+class Item(object):
+    def __init__(self, name):
+        self.name = name
+        self.n_plays = 0
+        self.emp_mean = 0
+        self.bound = 1e5
         
 
+class UCB(object):
+    def __init__(self, dist_lookup, time_horizon, ground_truth=None, test=True):
+        self.dist_lookup = dist_lookup
+        
+        self.time_horizon = time_horizon
+        self.ground_truth = ground_truth
+        self.test = test
+        
+        self._restart()
+        
+    def _restart(self):
+        item_names = sorted(list(self.dist_lookup.keys()))
+        self.item_list = [Item(item_name) for item_name in item_names]
+        
+        self.cum_regret = 0.0
+        
+        self.cum_regret_list = []
+        #self.cum_regret_list.append(self.cum_regret)
+
+    def get_loss(self, item_recommended):
+        if self.test:
+            return self.dist_lookup[self.ground_truth][item_recommended] + np.random.default_rng().standard_normal() * 0.01
+            # return self.tree.dist_lookup[self.ground_truth][item_recommended]
+        else:
+            loss = input("How close is this image to your thought: ")
+            # larger distance = bad prediction = larger loss
+            return float(loss)
+
+    def update_regret(self, item_recommended):
+        # record cumulative regret
+        self.cum_regret += self.dist_lookup[self.ground_truth][item_recommended.name]
+        self.cum_regret_list.append(self.cum_regret)
+        
+    def update_stats(self, t, item_recommended, reward):
+        item_recommended.n_plays += 1 # node has attribute n_plays, initial value is 0
+        item_recommended.emp_mean = (item_recommended.emp_mean * max(1, item_recommended.n_plays-1) + reward)/item_recommended.n_plays # node has attribute emp_mean, initial value is 0
+        
+        if t >= len(self.item_list):
+            ft = 1 + t * np.log(t) * np.log(t)
+            item_recommended.bound = item_recommended.emp_mean + np.sqrt(2 * np.log(ft) / item_recommended.n_plays)
+            
+    def run(self):
+        for t in range(self.time_horizon):
+            bound_list = [self.item_list[i].bound for i in range(len(self.item_list))]
+            item_recommended_id = np.argmax(bound_list)
+            item_recommended = self.item_list[item_recommended_id]
+            # print("\niteration =", t, "\nrecommend item =", item_recommended.name)
+            
+            # get reward from look-up table, or human
+            reward = 1 - self.get_loss(item_recommended.name) # reward or loss
+            # print("reward =", round(reward, 3))
+
+            self.update_stats(t, item_recommended, reward)
+            self.update_regret(item_recommended)
+
+    def plot_regret(self):
+        fig, ax = plt.subplots()
+        ax.plot(np.arange(self.time_horizon), self.cum_regret_list)
+        ax.set(xlabel='Time', ylabel='Cumulative Regret', title='Cumulative Regret')
+        return fig
+
+            
 class AdaptiveRecommenderSong(object):
     def __init__(self, exptree, time_horizon, user=None, ground_truth=None, test=True):
         # self.dist_lookup = dist_lookup
