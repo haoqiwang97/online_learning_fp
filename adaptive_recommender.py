@@ -43,7 +43,7 @@ class AdaptiveRecommenderSong(object):
         pass
     
     def update_stats(self, t, layer_id, node_selected_id, child_node_selected_id, reward):
-        A_s = 2 # A_s is the exploration_exploitation trade-off factor, here use UCB factor
+        A_s = 2 # TODO: test A_s, A_s is the exploration_exploitation trade-off factor, here use UCB factor
         node_selected = self.tree.get_node(layer_id, node_selected_id)
         node_selected.n_plays += 1 # node has attribute n_plays, initial value is 0
         node_selected.emp_mean = (node_selected.emp_mean * max(1, node_selected.n_plays-1) + reward)/node_selected.n_plays # node has attribute emp_mean, initial value is 0
@@ -98,7 +98,7 @@ class AdaptiveRecommenderSong(object):
                 
                 # randomly recommend an item in child node
                 possible_items = node_selected.children[child_node_selected_id].items # tree has attribute of items, which return all the image items in this node
-                item_recommended = rng.choice(possible_items)
+                item_recommended = rng.choice(possible_items) # TODO: just recommend this node item
                 print("epoch =", layer_id, "\niteration =", t, "\nrecommend node =", node_selected_id, "\nrecommend item =", item_recommended)
                 
                 # get reward from look-up table, or human

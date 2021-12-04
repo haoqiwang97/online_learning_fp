@@ -21,7 +21,7 @@ exptree.build_tree()
 #exptree.print_tree()
 
 recommender = AdaptiveRecommenderSong(exptree=exptree,
-                                  time_horizon=10000,
+                                  time_horizon=1000,
                                   user=None,
                                   ground_truth='I_2055',
                                   test=True)
