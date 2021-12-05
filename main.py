@@ -83,8 +83,8 @@ def run_algo(recommender, n_instances):
         regret_lists.append(recommender.cum_regret_list)
     return regret_lists
 
-do_experiments = False
-horizon=10000
+do_experiments = True
+horizon=100000
 if do_experiments:
     # compare different algorithms
     n_instances = 30
@@ -97,11 +97,12 @@ if do_experiments:
                       noise=0.5)
     results['UCB'] = run_algo(recommender, n_instances)
     
-    recommender = GraphUCB(dist_lookup=dist_lookup, 
-                      time_horizon=horizon, 
-                      ground_truth='I_2055', 
-                      test=True,
-                      noise=0.5)
+    
+    recommender = GraphUCB(dist_lookup=dist_lookup,
+                           time_horizon=horizon,
+                           ground_truth='I_2055',
+                           test=True,
+                           noise=0.5)
     results['GraphUCB'] = run_algo(recommender, n_instances)
 
     
@@ -116,16 +117,15 @@ if do_experiments:
     results['AdaptiveRecommenderSong'] = run_algo(recommender, n_instances)
     
     
-    
-    #exptree = ExpTree(b=0.6, n_layers=4, dist_lookup=dist_lookup)
-    #exptree.build_tree()
-    #recommender = AdaptiveRecommender(exptree=exptree,
-    #                                  time_horizon=10000,
-    #                                  user=None,
-    #                                  ground_truth='I_2055',
-    #                                  test=True,
-    #                                  noise=0.1)
-    #results['AdaptiveRecommender'] = run_algo(recommender, n_instances)
+    exptree = ExpTree(b=0.6, n_layers=4, dist_lookup=dist_lookup)
+    exptree.build_tree()
+    recommender = AdaptiveRecommender(exptree=exptree,
+                                      time_horizon=horizon,
+                                      user=None,
+                                      ground_truth='I_2055',
+                                      test=True,
+                                      noise=0.5)
+    results['AdaptiveRecommender'] = run_algo(recommender, n_instances)
     
     # plot all regret results and compare
     # TODO: write to a function?

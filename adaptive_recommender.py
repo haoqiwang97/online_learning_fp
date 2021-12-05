@@ -65,12 +65,12 @@ class UCB(object):
         
         if t >= len(self.item_list):
             # option 1, original UCB
-            # ft = 1 + t * np.log(t) * np.log(t)
-            # item_recommended.bound = item_recommended.emp_mean + np.sqrt(2 * np.log(ft) / item_recommended.n_plays)
+            ft = 1 + t * np.log(t) * np.log(t)
+            item_recommended.bound = item_recommended.emp_mean + np.sqrt(2 * np.log(ft) / item_recommended.n_plays)
             
             # option 2, Linqi Song
-            A_s = 2
-            item_recommended.bound = item_recommended.emp_mean + np.sqrt(A_s * np.log(t) / item_recommended.n_plays) # each node has attribute bound
+            # A_s = 2
+            # item_recommended.bound = item_recommended.emp_mean + np.sqrt(A_s * np.log(t) / item_recommended.n_plays) # each node has attribute bound
             
     def run(self):
         for t in range(self.time_horizon):
@@ -346,7 +346,7 @@ class AdaptiveRecommender(object):
         # option 3
         # node_selected.bound = node_selected.emp_mean
         
-        # update all children
+        # update all parents
         def helper(leaf):
             if not leaf:
                 return []
@@ -354,6 +354,17 @@ class AdaptiveRecommender(object):
             leaf.emp_mean = (leaf.emp_mean * max(1, leaf.n_plays-1) + reward)/leaf.n_plays
             leaf.bound = leaf.emp_mean + np.sqrt(A_s * np.log(t) / leaf.n_plays)
             
+            # update siblings
+            if leaf.layer_id > 0:
+                for sibling in leaf.parent.children:
+                    # print(sibling.layer_id)
+                    if sibling.name != leaf.name:
+                        similarity = 1-self.tree.dist_lookup[sibling.name][leaf.name]
+                        sibling.n_plays += similarity
+                        sibling.emp_mean = (sibling.emp_mean * (sibling.n_plays-similarity) + similarity * reward)/sibling.n_plays  
+                        if sibling.n_plays > 0:
+                            sibling.bound = sibling.emp_mean + np.sqrt(A_s * np.log(t)/sibling.n_plays)
+                        
             helper(leaf.parent)
         # node_selected = self.tree.get_node(layer_id, node_selected_id)
         helper(item_recommended_node)
@@ -397,9 +408,9 @@ class AdaptiveRecommender(object):
                 self.update_stats(t, item_recommended_node, reward)
                 self.update_regret(item_recommended)
                 
-                print("epoch =", layer_id, "\niteration =", t, "\nrecommend node =", node_selected_id, "\nrecommend item =", item_recommended)
-                print("reward =", round(reward, 3))
-                print("regret =", self.cum_regret)
+                # print("epoch =", layer_id, "\niteration =", t, "\nrecommend node =", node_selected_id, "\nrecommend item =", item_recommended)
+                # print("reward =", round(reward, 3))
+                # print("regret =", self.cum_regret)
                 
         layer_id = self.n_epochs - 1
         partitions = self.tree.get_layer(layer_id)
@@ -424,10 +435,10 @@ class AdaptiveRecommender(object):
             self.update_stats(t, item_recommended_node, reward)
             self.update_regret(item_recommended)
             
-            if t%1000 == 0:
-                print("epoch =", layer_id, "\niteration =", t, "\nrecommend node =", node_selected_id, "\nrecommend item =", item_recommended)
-                print("reward =", round(reward, 3))
-                print("regret =", self.cum_regret)
+            # if t%1000 == 0:
+            #     print("epoch =", layer_id, "\niteration =", t, "\nrecommend node =", node_selected_id, "\nrecommend item =", item_recommended)
+            #     print("reward =", round(reward, 3))
+            #     print("regret =", self.cum_regret)
 
     def plot_regret(self):
         # TODO: two plots
