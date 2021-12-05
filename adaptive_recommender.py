@@ -26,12 +26,13 @@ class Item(object):
         
 
 class UCB(object):
-    def __init__(self, dist_lookup, time_horizon, ground_truth=None, test=True):
+    def __init__(self, dist_lookup, time_horizon, ground_truth=None, test=True, noise=0.01):
         self.dist_lookup = dist_lookup
         
         self.time_horizon = time_horizon
         self.ground_truth = ground_truth
         self.test = test
+        self.noise = noise
         
         self._restart()
         
@@ -46,7 +47,7 @@ class UCB(object):
 
     def get_loss(self, item_recommended):
         if self.test:
-            return self.dist_lookup[self.ground_truth][item_recommended] + np.random.default_rng().standard_normal() * 0.01
+            return self.dist_lookup[self.ground_truth][item_recommended] + np.random.default_rng().standard_normal() * self.noise
             # return self.tree.dist_lookup[self.ground_truth][item_recommended]
         else:
             loss = input("How close is this image to your thought: ")
@@ -88,7 +89,7 @@ class UCB(object):
 
             
 class AdaptiveRecommenderSong(object):
-    def __init__(self, exptree, time_horizon, user=None, ground_truth=None, test=True):
+    def __init__(self, exptree, time_horizon, user=None, ground_truth=None, test=True, noise = 0.01):
         # self.dist_lookup = dist_lookup
         self.tree = exptree
         # self.user = self.user
@@ -100,6 +101,7 @@ class AdaptiveRecommenderSong(object):
         self.ground_truth = ground_truth # ground_truth is known for testing, for real experiment with human, we do not know
         
         self.test = test # whether it is testing or doing experiment with human
+        self.noise = noise
         
         self._restart()
         
@@ -148,7 +150,7 @@ class AdaptiveRecommenderSong(object):
         
     def get_loss(self, item_recommended):
         if self.test:
-            return self.tree.dist_lookup[self.ground_truth][item_recommended] + np.random.default_rng().standard_normal() * 0.01
+            return self.tree.dist_lookup[self.ground_truth][item_recommended] + np.random.default_rng().standard_normal() * self.noise
             # return self.tree.dist_lookup[self.ground_truth][item_recommended]
         else:
             loss = input("How close is this image to your thought: ")
@@ -156,7 +158,7 @@ class AdaptiveRecommenderSong(object):
             return float(loss)
         
     def run(self):
-        rng = np.random.default_rng(1)
+        rng = np.random.default_rng()#np.random.default_rng(1)
         for layer_id in range(0, self.n_epochs-1):
             partitions = self.tree.get_layer(layer_id) # the tree has function, input layer id, output all the nodes at layer id in a list
             # if layer_id == 0: # first big cluster
@@ -173,15 +175,15 @@ class AdaptiveRecommenderSong(object):
                 # randomly recommend an item in child node
                 possible_items = node_selected.children[child_node_selected_id].items # tree has attribute of items, which return all the image items in this node
                 item_recommended = rng.choice(possible_items) # TODO: just recommend this node item
-                print("epoch =", layer_id, "\niteration =", t, "\nrecommend node =", node_selected_id, "\nrecommend item =", item_recommended)
+                # print("epoch =", layer_id, "\niteration =", t, "\nrecommend node =", node_selected_id, "\nrecommend item =", item_recommended)
                 
                 # get reward from look-up table, or human
                 reward = 1 - self.get_loss(item_recommended) # reward or loss
-                print("reward =", round(reward, 3))
+                # print("reward =", round(reward, 3))
                 # update parameters
                 self.update_stats(t, layer_id, node_selected_id, child_node_selected_id, reward)
                 self.update_regret(item_recommended)
-                print("regret =", self.cum_regret)
+                # print("regret =", self.cum_regret)
                 
         layer_id = self.n_epochs - 1
         partitions = self.tree.get_layer(layer_id)
@@ -196,11 +198,11 @@ class AdaptiveRecommenderSong(object):
             # randomly recommend item
             possible_items = node_selected.items
             item_recommended = rng.choice(possible_items)
-            print("epoch =", layer_id, "\niteration =", t, "\nrecommend node =", node_selected_id, "\nrecommend item =", item_recommended)
+            #print("epoch =", layer_id, "\niteration =", t, "\nrecommend node =", node_selected_id, "\nrecommend item =", item_recommended)
 
             
             reward = 1 - self.get_loss(item_recommended)
-            print("reward =", round(reward, 3))
+            #print("reward =", round(reward, 3))
             
             self.update_stats(t, layer_id, node_selected_id, None, reward)
             self.update_regret(item_recommended)
@@ -214,7 +216,7 @@ class AdaptiveRecommenderSong(object):
 
 
 class AdaptiveRecommender(object):
-    def __init__(self, exptree, time_horizon, user=None, ground_truth=None, test=True):
+    def __init__(self, exptree, time_horizon, user=None, ground_truth=None, test=True, noise=0.01):
         # self.dist_lookup = dist_lookup
         self.tree = exptree
         # self.user = self.user
@@ -226,7 +228,7 @@ class AdaptiveRecommender(object):
         self.ground_truth = ground_truth # ground_truth is known for testing, for real experiment with human, we do not know
         
         self.test = test # whether it is testing or doing experiment with human
-        
+        self.noise = noise
         self._restart()
         
     def _restart(self):
@@ -276,7 +278,7 @@ class AdaptiveRecommender(object):
         
     def get_loss(self, item_recommended):
         if self.test:
-            return self.tree.dist_lookup[self.ground_truth][item_recommended] + np.random.default_rng().standard_normal() * 0.01
+            return self.tree.dist_lookup[self.ground_truth][item_recommended] + np.random.default_rng().standard_normal() * self.noise
             # return self.tree.dist_lookup[self.ground_truth][item_recommended]
         else:
             loss = input("How close is this image to your thought: ")
@@ -284,7 +286,7 @@ class AdaptiveRecommender(object):
             return float(loss)
         
     def run(self):
-        rng = np.random.default_rng(1)
+        rng = np.random.default_rng() #np.random.default_rng(1)
         for layer_id in range(0, self.n_epochs-1):
             partitions = self.tree.get_layer(layer_id) # the tree has function, input layer id, output all the nodes at layer id in a list
             # if layer_id == 0: # first big cluster
@@ -298,15 +300,15 @@ class AdaptiveRecommender(object):
                 # randomly recommend an item in node
                 possible_items = node_selected.items # tree has attribute of items, which return all the image items in this node
                 item_recommended = rng.choice(possible_items)
-                print("epoch =", layer_id, "\niteration =", t, "\nrecommend node =", node_selected_id, "\nrecommend item =", item_recommended)
+                # print("epoch =", layer_id, "\niteration =", t, "\nrecommend node =", node_selected_id, "\nrecommend item =", item_recommended)
                 
                 # get reward from look-up table, or human
                 reward = 1 - self.get_loss(item_recommended) # reward or loss
-                print("reward =", round(reward, 3))
+                # print("reward =", round(reward, 3))
                 # update parameters
                 self.update_stats(t, layer_id, node_selected_id, reward)
                 self.update_regret(item_recommended)
-                print("regret =", self.cum_regret)
+                # print("regret =", self.cum_regret)
                 
         layer_id = self.n_epochs - 1
         partitions = self.tree.get_layer(layer_id)
@@ -321,11 +323,11 @@ class AdaptiveRecommender(object):
             # randomly recommend item
             possible_items = node_selected.items
             item_recommended = rng.choice(possible_items)
-            print("epoch =", layer_id, "\niteration =", t, "\nrecommend node =", node_selected_id, "\nrecommend item =", item_recommended)
+            # print("epoch =", layer_id, "\niteration =", t, "\nrecommend node =", node_selected_id, "\nrecommend item =", item_recommended)
 
             
             reward = 1 - self.get_loss(item_recommended)
-            print("reward =", round(reward, 3))
+            # print("reward =", round(reward, 3))
             
             self.update_stats(t, layer_id, node_selected_id, reward)
             self.update_regret(item_recommended)
