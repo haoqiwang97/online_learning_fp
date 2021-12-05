@@ -17,9 +17,9 @@ import argparse
 def parse_args():
     parser = argparse.ArgumentParser(description="main.py")
     
-    parser.add_argument('--recommender', type=str, default="AdaptiveRecommenderSong", help="choose a recommender algorithm")
+    parser.add_argument('--recommender', type=str, default="AdaptiveRecommender", help="choose a recommender algorithm")
     parser.add_argument('--data_path', type=str, default="data/NOUN_Sorting_Tables.xlsx")
-    
+    parser.add_argument('--time_horizon', type=int, default=10000)
     args = parser.parse_args()
     return args
 
@@ -32,14 +32,14 @@ dist_lookup = build_dist_lookup(data)
 
 if args.recommender == "UCB":
     recommender = UCB(dist_lookup=dist_lookup, 
-                      time_horizon=10000, 
+                      time_horizon=args.time_horizon, 
                       ground_truth='I_2055', 
                       test=True)
     # item_list = [recommender.item_list[i].name for i in range(len(recommender.item_list))]
     # n_plays_list = [recommender.item_list[i].n_plays for i in range(len(recommender.item_list))]
 elif args.recommender == "GraphUCB":
     recommender = GraphUCB(dist_lookup=dist_lookup, 
-                      time_horizon=10000, 
+                      time_horizon=args.time_horizon, 
                       ground_truth='I_2055', 
                       test=True)
 
@@ -49,7 +49,7 @@ elif args.recommender == "AdaptiveRecommenderSong":
     #exptree.print_tree()
     
     recommender = AdaptiveRecommenderSong(exptree=exptree,
-                                          time_horizon=10000,
+                                          time_horizon=args.time_horizon,
                                           user=None,
                                           ground_truth='I_2055',
                                           test=True)
@@ -70,8 +70,8 @@ elif args.recommender == "AdaptiveRecommender":
                                       ground_truth='I_2055',
                                       test=True)
 
-#recommender.run()
-#fig = recommender.plot_regret()
+recommender.run()
+fig = recommender.plot_regret()
 
 def run_algo(recommender, n_instances):
     regret_lists = []
@@ -83,7 +83,7 @@ def run_algo(recommender, n_instances):
         regret_lists.append(recommender.cum_regret_list)
     return regret_lists
 
-do_experiments = True
+do_experiments = False
 horizon=10000
 if do_experiments:
     # compare different algorithms

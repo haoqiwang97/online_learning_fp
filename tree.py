@@ -54,6 +54,22 @@ class Node(object):
         helper(self, 0)
         return result[-1]
 
+    @property
+    def items_node(self):
+        # go to the bottom layer and return all items
+        result = []
+
+        def helper(root, layer_id):
+            if not root:
+                return []
+            if len(result) == layer_id:
+                result.append([])
+            result[layer_id].append(root)
+            for child in root.children:
+                helper(child, layer_id + 1)
+        helper(self, 0)
+        return result[-1]
+    
     def __repr__(self):
         # return "layer_id=" + repr(self.layer_id) + ";\nnode_id=" + repr(self.node_id) + ";\nparent=" + repr(self.parent) + ";\nchildren=" + repr(self.children)
         # + ";\nparent=" + repr(self.parent) + ";\nchildren=" + repr(self.children)
