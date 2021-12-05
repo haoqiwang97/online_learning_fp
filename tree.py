@@ -19,6 +19,9 @@ class Node(object):
         self.parent = None
         self.children = []  # last layer does not have child
         self.name = name
+        self.n_plays = 0
+        self.emp_mean = 0
+        self.bound = 1e5 #0  # TODO: Q1_UCB_EE381V.ipynb set 1e5*np.ones(self.num_arms), index is upper bound value
 
     def _restart_node(self):
         self.n_plays = 0
@@ -66,6 +69,27 @@ class ExpTree(object):
         self.n_layers = n_layers  # depth of tree
         self.dist_lookup = dist_lookup
         # A, constant like 2 in UCB in square root
+    
+    def select_lower(self, visited_lower, node_list, mode='random', radius=1.0):
+        # input: available index, node list
+        # output: index
+        rng = np.random.default_rng(1)
+        if mode == 'random':
+            return rng.choice(visited_lower)
+        if mode == 'farthest':
+            node_neighbor_count={}
+            for idx in visited_lower:
+                if idx not in node_neighbor_count.keys():
+                    node_neighbor_count[idx]=0
+                    for neighbor_idx in visited_lower:
+                        if self.dist_lookup[node_list[idx].name][node_list[neighbor_idx].name]<radius:
+                            node_neighbor_count[idx]+=1
+            farthest_idx=visited_lower[0]
+            for key, value in node_neighbor_count.items():
+                if value < node_neighbor_count[farthest_idx]:
+                    farthest_idx = key
+            return farthest_idx
+        return visited_lower[0]
 
     def build_tree(self):
         """
@@ -95,8 +119,9 @@ class ExpTree(object):
             C_higher = []
             node_id = 0 # counter for the number of nodes at layer
             while len(visited_lower) > 0:  # node
-                idx = rng.choice(visited_lower)  # arbitrary select an element
-                
+                #idx = rng.choice(visited_lower)  # arbitrary select an element
+                #do not randomly select function input:[layer nodes], output:index with least number of satisfied nodes
+                idx = self.select_lower(visited_lower, C_lower, mode='farthest', radius=b**(l-1))
                 new_node = Node(C_lower[idx].layer_id-1, # 1 layer up
                                 node_id, # node_id start from 0
                                 C_lower[idx].name) 
