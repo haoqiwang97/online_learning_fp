@@ -71,8 +71,8 @@ fig = recommender.plot_regret()
 def run_algo(recommender, n_instances):
     regret_lists = []
     for i in range(n_instances):
-        # if (i+1)%10 == 0:
-        print('Instance number =', i)
+        if i%10 == 0:
+            print('Instance number =', i)
         recommender._restart()
         recommender.run()
         regret_lists.append(recommender.cum_regret_list)
@@ -87,7 +87,8 @@ if do_experiments:
     recommender = UCB(dist_lookup=dist_lookup, 
                       time_horizon=100000, 
                       ground_truth='I_2055', 
-                      test=True)
+                      test=True,
+                      noise=0.5)
     results['UCB'] = run_algo(recommender, n_instances)
     
     
@@ -99,7 +100,7 @@ if do_experiments:
                                           user=None,
                                           ground_truth='I_2055',
                                           test=True,
-                                          noise=0.1)
+                                          noise=0.5)
     results['AdaptiveRecommenderSong'] = run_algo(recommender, n_instances)
     
     

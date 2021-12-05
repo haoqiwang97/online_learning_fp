@@ -64,8 +64,13 @@ class UCB(object):
         item_recommended.emp_mean = (item_recommended.emp_mean * max(1, item_recommended.n_plays-1) + reward)/item_recommended.n_plays # node has attribute emp_mean, initial value is 0
         
         if t >= len(self.item_list):
-            ft = 1 + t * np.log(t) * np.log(t)
-            item_recommended.bound = item_recommended.emp_mean + np.sqrt(2 * np.log(ft) / item_recommended.n_plays)
+            # option 1, original UCB
+            # ft = 1 + t * np.log(t) * np.log(t)
+            # item_recommended.bound = item_recommended.emp_mean + np.sqrt(2 * np.log(ft) / item_recommended.n_plays)
+            
+            # option 2, Linqi Song
+            A_s = 2
+            item_recommended.bound = item_recommended.emp_mean + np.sqrt(A_s * np.log(t) / item_recommended.n_plays) # each node has attribute bound
             
     def run(self):
         for t in range(self.time_horizon):
