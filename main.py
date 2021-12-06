@@ -42,6 +42,11 @@ elif args.recommender == "NearNeighborUCB":
                       time_horizon=args.time_horizon, 
                       ground_truth='I_2055', 
                       test=True)
+elif args.recommender == "GraphUCB":
+    recommender = GraphUCB(dist_lookup=dist_lookup, 
+                      time_horizon=args.time_horizon, 
+                      ground_truth='I_2055', 
+                      test=True)
 
 elif args.recommender == "AdaptiveRecommenderSong":
     exptree = ExpTree(b=0.6, n_layers=4, dist_lookup=dist_lookup)
@@ -84,7 +89,7 @@ def run_algo(recommender, n_instances):
     return regret_lists
 
 do_experiments = True
-horizon=10000
+horizon=1000
 noise_level=0.5
 if do_experiments:
     # compare different algorithms
@@ -98,6 +103,14 @@ if do_experiments:
                       noise=noise_level)
     results['UCB'] = run_algo(recommender, n_instances)
     
+
+    recommender = GraphUCB(dist_lookup=dist_lookup,
+                           time_horizon=horizon,
+                           ground_truth='I_2055',
+                           test=True,
+                           noise=noise_level)
+    results['GraphUCB'] = run_algo(recommender, n_instances)
+   
     
     recommender = NearNeighborUCB(dist_lookup=dist_lookup,
                            time_horizon=horizon,

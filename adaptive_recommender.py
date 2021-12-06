@@ -4,7 +4,7 @@ Created on Tue Nov 23 16:46:02 2021
 
 @author: hw9335
 """
-
+import support_func
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -93,25 +93,155 @@ class UCB(object):
         return fig
 
 class GraphUCB(object):
-    def __init__(self, dist_lookup, time_horizon, ground_truth=None, test=True, noise=0.01):
+    def __init__(self, dist_lookup, time_horizon, rho=0.0001, delta=0.0001, eps=0, ground_truth=None, test=True, noise=0.01):
         self.dist_lookup = dist_lookup
-        
+        self.L = self.cal_laplacian(self.dist_lookup) 
         self.time_horizon = time_horizon
         self.ground_truth = ground_truth
         self.test = test
         self.noise = noise
-        
+        self.rho = rho
+        self.delta = delta 
+        self.dim = len(self.L)
+        self.eps = eps
+        self.eta = 0.0
+        self.remaining_nodes = [i for i in range(self.dim)]
+        self.L_rho = self.eta * self.L + self.rho * np.identity(self.dim)
+        self.counter = np.zeros((self.dim, self.dim))
+        self.conf_width = np.zeros(self.dim)
+        self.total_reward = np.zeros(self.dim)
+        self.mean_estimate = np.zeros(self.dim)
+        #self.clusters = support_func.get_clusters(self.A)
+        #self.jumping_index = np.array(support_func.jumping_list(self.clusters, self.dim))
+
+        self.beta_tracker = 0.0
+        self.inverse_tracker = np.zeros((self.dim, self.dim))
+        self.picking_order = []
+        # self.global_tracker_conf_width = []
+
+        self.initialize_conf_width()
         self._restart()
-        
+    
+    def cal_laplacian(self, dist_lookup):
+        nodes = sorted(self.dist_lookup.keys())
+        U = []
+        W_diag = []
+        for i in range(len(nodes)):
+            for j in range(len(nodes)):
+                W_diag.append(self.dist_lookup[nodes[i]][nodes[j]])
+                ue = [0 for x in range(len(nodes))]
+                if i!=j:
+                    ue[i] = 1
+                    ue[j] = -1
+                U.append(ue)
+        U=np.array(U)
+        W=np.diag(W_diag)
+        L=np.matmul(np.matmul(U.T,W),U)
+        return L    
+
+    def initialize_conf_width(self):
+        """
+        Initialize confidence width of all arms.
+        """
+        v_t_inverse = np.linalg.inv(self.counter + self.L_rho)
+        self.inverse_tracker = v_t_inverse
+        self.update_conf_width()
+    
+    def compute_imperfect_info(self):
+        """
+        Computing the error cause of imperfect graph information
+        Returns
+        -------
+        <x, Lx> : quadratic error value
+        """
+        return support_func.matrix_norm(self.means, self.L)
+
     def _restart(self):
         item_names = sorted(list(self.dist_lookup.keys()))
         self.item_list = [Item(item_name) for item_name in item_names]
         
+        self.counter = np.zeros((self.dim, self.dim))
         self.cum_regret = 0.0
         
         self.cum_regret_list = []
         #self.cum_regret_list.append(self.cum_regret)
+    
+    def required_reset(self):
+        """
+        Reset all the arm-counter to 0.
+        """
+        if self.reset:
+            self.counter = np.zeros((self.dim, self.dim))
+    
+    def update_conf_width(self):
+        """
+        Update confidence width of all arms.
+        """
+        for i in range(self.dim):
+            self.conf_width[i] = np.sqrt(self.inverse_tracker[i, i])
+    
+    def select_arm(self):
+        """
+        Spectral bandits [Valko el.at] based arm sampling from the remaining set of arms.
+        """
+        remaining_width = np.zeros(self.dim)
+        for i in self.remaining_nodes:
+            remaining_width[i] = self.conf_width[i]
+        play_index = np.argmax(remaining_width)
 
+        return play_index
+    
+    def play_arm(self, index, reward):
+        """
+        Update counter and reward based on arm played.
+        Parameters
+        ----------
+        index : Arm being played in the current round.
+        """
+        self.picking_order.append(index)
+        counter_vec = np.zeros(self.dim)
+        counter_vec[index] = 1
+        old_v_t_inverse = self.inverse_tracker
+        v_t_inverse = support_func.sherman_morrison_inverse(counter_vec, old_v_t_inverse)
+        self.inverse_tracker = v_t_inverse
+        self.update_conf_width()
+
+        # FIXME : Testing to remove function "increment_count"
+        # #self.increment_count(index)
+        self.counter[index, index] += 1
+        current_counter = np.array(self.counter)
+        # self.counter_tracker.append(current_counter)
+        # self.update_conf_width()
+
+        #reward = support_func.gaussian_reward(self.means[index])
+        self.total_reward[index] = self.total_reward[index] + reward
+
+    def estimate_mean(self):
+        """
+        Estimate mean using quadratic Laplacian closed form expression.
+        """
+
+        self.mean_estimate = np.dot(self.inverse_tracker, self.total_reward)
+
+    def eliminate_arms(self):
+        """
+        Eliminate arms based on UCB-style argument.
+        """
+
+        # TODO : Need to change log(T) to  log(|A_i|)
+
+        beta = 2 * np.sqrt(14 * np.log2(2 * self.dim * np.trace(self.counter) / self.delta)) + 0.5 * self.eta * self.eps
+        self.beta_tracker = beta
+        temp_array = np.zeros(self.dim)
+
+        # FIXME : Testing commented out code with alternative.
+        for i in self.remaining_nodes:
+            temp_array[i] = self.mean_estimate[i] - beta * self.conf_width[i]
+
+        max_value = max(temp_array)
+        self.remaining_nodes = [i for i in self.remaining_nodes if
+                                self.mean_estimate[i] + beta * self.conf_width[i] >= max_value]
+    
     def get_loss(self, item_recommended):
         if self.test:
             return self.dist_lookup[self.ground_truth][item_recommended] + np.random.default_rng().standard_normal() * self.noise
@@ -156,16 +286,14 @@ class GraphUCB(object):
         
     def run(self):
         for t in range(self.time_horizon):
-            bound_list = [self.item_list[i].bound for i in range(len(self.item_list))]
-            item_recommended_id = np.argmax(bound_list)
+            item_recommended_id = self.select_arm()
             item_recommended = self.item_list[item_recommended_id]
-            # print("\niteration =", t, "\nrecommend item =", item_recommended.name)
             
-            # get reward from look-up table, or human
             reward = 1 - self.get_loss(item_recommended.name) # reward or loss
-            # print("reward =", round(reward, 3))
-
-            self.update_stats(t, item_recommended, reward)
+            self.play_arm(item_recommended_id, reward)
+            self.estimate_mean()
+            self.eliminate_arms()
+            #self.update_stats(t, item_recommended, reward)
             self.update_regret(item_recommended)
 
     def plot_regret(self):
