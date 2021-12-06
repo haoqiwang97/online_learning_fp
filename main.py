@@ -37,8 +37,8 @@ if args.recommender == "UCB":
                       test=True)
     # item_list = [recommender.item_list[i].name for i in range(len(recommender.item_list))]
     # n_plays_list = [recommender.item_list[i].n_plays for i in range(len(recommender.item_list))]
-elif args.recommender == "GraphUCB":
-    recommender = GraphUCB(dist_lookup=dist_lookup, 
+elif args.recommender == "NearNeighborUCB":
+    recommender = NearNeighborUCB(dist_lookup=dist_lookup, 
                       time_horizon=args.time_horizon, 
                       ground_truth='I_2055', 
                       test=True)
@@ -70,8 +70,8 @@ elif args.recommender == "AdaptiveRecommender":
                                       ground_truth='I_2055',
                                       test=True)
 
-recommender.run()
-fig = recommender.plot_regret()
+#recommender.run()
+#fig = recommender.plot_regret()
 
 def run_algo(recommender, n_instances):
     regret_lists = []
@@ -85,6 +85,7 @@ def run_algo(recommender, n_instances):
 
 do_experiments = True
 horizon=10000
+noise_level=0.5
 if do_experiments:
     # compare different algorithms
     n_instances = 30
@@ -94,16 +95,16 @@ if do_experiments:
                       time_horizon=horizon, 
                       ground_truth='I_2055', 
                       test=True,
-                      noise=0.5)
+                      noise=noise_level)
     results['UCB'] = run_algo(recommender, n_instances)
     
     
-    recommender = GraphUCB(dist_lookup=dist_lookup,
+    recommender = NearNeighborUCB(dist_lookup=dist_lookup,
                            time_horizon=horizon,
                            ground_truth='I_2055',
                            test=True,
-                           noise=0.5)
-    results['GraphUCB'] = run_algo(recommender, n_instances)
+                           noise=noise_level)
+    results['NearNeighborUCB'] = run_algo(recommender, n_instances)
 
     
     exptree = ExpTree(b=0.6, n_layers=4, dist_lookup=dist_lookup)
@@ -113,7 +114,7 @@ if do_experiments:
                                           user=None,
                                           ground_truth='I_2055',
                                           test=True,
-                                          noise=0.5)
+                                          noise=noise_level)
     results['AdaptiveRecommenderSong'] = run_algo(recommender, n_instances)
     
     
@@ -124,7 +125,7 @@ if do_experiments:
                                       user=None,
                                       ground_truth='I_2055',
                                       test=True,
-                                      noise=0.5)
+                                      noise=noise_level)
     results['AdaptiveRecommender'] = run_algo(recommender, n_instances)
     
     # plot all regret results and compare
