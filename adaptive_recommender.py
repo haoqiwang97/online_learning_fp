@@ -23,8 +23,14 @@ class Item(object):
         self.n_plays = 0
         self.emp_mean = 0
         self.bound = 1e5
-        
+    
+    def __repr__(self):
+        return "name=" + repr(self.name)
 
+    def __str__(self):
+        return self.__repr__()
+    
+    
 class UCB(object):
     def __init__(self, dist_lookup, time_horizon, ground_truth=None, test=True, noise=0.01):
         self.dist_lookup = dist_lookup
@@ -257,6 +263,7 @@ class GraphUCB(object):
         max_value = max(temp_array)
         self.remaining_nodes = [i for i in self.remaining_nodes if
                                 self.mean_estimate[i] + beta * self.conf_width[i] >= max_value]
+        # print("number of remaining nodes", len(self.remaining_nodes))
     
     def get_loss(self, item_recommended):
         if self.test:
@@ -271,40 +278,12 @@ class GraphUCB(object):
         # record cumulative regret
         self.cum_regret += self.dist_lookup[self.ground_truth][item_recommended.name]
         self.cum_regret_list.append(self.cum_regret)
-        
-    def update_stats(self, t, item_recommended, reward):
-        #item_recommended=self.item_list[item_recommended_id]
-        #item_recommended.n_plays += 1 # node has attribute n_plays, initial value is 0
-        #item_recommended.emp_mean = (item_recommended.emp_mean * max(1, item_recommended.n_plays-1) + reward)/item_recommended.n_plays # node has attribute emp_mean, initial value is 0
-        for item in self.item_list:
-            similarity=1-self.dist_lookup[item_recommended.name][item.name]
-            if t<100 or similarity>0.9:
-                item.n_plays += similarity
-                item.emp_mean = (item.emp_mean * (item.n_plays-similarity) + similarity * reward)/item.n_plays  
-        
-        #if t >= len(self.item_list):
-            # option 1, original UCB
-            # ft = 1 + t * np.log(t) * np.log(t)
-            # item_recommended.bound = item_recommended.emp_mean + np.sqrt(2 * np.log(ft) / item_recommended.n_plays)
-            
-            # option 2, Linqi Song
-            #A_s = 2
-            #item_recommended.bound = item_recommended.emp_mean + np.sqrt(A_s * np.log(t) / item_recommended.n_plays) # each node has attribute bound
-            
-        #option 3 update all
-        A_s = 2
-        if t>1:
-            for item in self.item_list:
-                if item.n_plays > 0:
-                    item.bound=item.emp_mean + np.sqrt(A_s * np.log(t)/item.n_plays)
 
-
-        
     def run(self):
         for t in range(self.time_horizon):
             item_recommended_id = self.select_arm()
             item_recommended = self.item_list[item_recommended_id]
-            
+
             reward = 1 - self.get_loss(item_recommended.name) # reward or loss
             self.play_arm(item_recommended_id, reward)
             self.estimate_mean()
@@ -318,6 +297,7 @@ class GraphUCB(object):
         ax.plot(np.arange(self.time_horizon), self.cum_regret_list)
         ax.set(xlabel='Time', ylabel='Cumulative Regret', title='Cumulative Regret')
         return fig
+
 
 class NearNeighborUCB(object):
     def __init__(self, dist_lookup, time_horizon, ground_truth=None, test=True, noise=0.01):
