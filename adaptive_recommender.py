@@ -23,6 +23,12 @@ class Item(object):
         self.n_plays = 0
         self.emp_mean = 0
         self.bound = 1e5
+    
+    def __repr__(self):
+        return "name=" + repr(self.name)
+
+    def __str__(self):
+        return self.__repr__()
         
 
 class UCB(object):
