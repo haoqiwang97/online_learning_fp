@@ -180,17 +180,33 @@ class GraphUCB(object):
         for i in range(self.dim):
             self.conf_width[i] = np.sqrt(self.inverse_tracker[i, i])
     
+    def opti_selection(self):
+        """
+        Proposed arm selection criteria based on the ensemble reduction of confidence width.
+        """
+
+        # TODO : Replace costly inverse computation using Sherman-Morrison formula.
+        A = self.remaining_nodes
+        options =[]
+        for i in A:
+            new_vec = np.zeros(self.dim)
+            new_vec[i] = 1
+            current = support_func.sherman_morrison_inverse(new_vec, self.inverse_tracker)
+            options.append(np.linalg.det(current))
+        index = np.argmin(options)
+        return np.array(A)[index]
+
     def select_arm(self):
         """
-        Spectral bandits [Valko el.at] based arm sampling from the remaining set of arms.
+        Select arm to play based on proposed ensemble confidence width reduction criteria.
         """
         remaining_width = np.zeros(self.dim)
         for i in self.remaining_nodes:
             remaining_width[i] = self.conf_width[i]
-        play_index = np.argmax(remaining_width)
+        play_index = self.opti_selection()
 
         return play_index
-    
+
     def play_arm(self, index, reward):
         """
         Update counter and reward based on arm played.
@@ -293,6 +309,7 @@ class GraphUCB(object):
             self.play_arm(item_recommended_id, reward)
             self.estimate_mean()
             self.eliminate_arms()
+            #from IPython import embed; embed()
             #self.update_stats(t, item_recommended, reward)
             self.update_regret(item_recommended)
 

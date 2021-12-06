@@ -89,7 +89,7 @@ def run_algo(recommender, n_instances):
     return regret_lists
 
 do_experiments = True
-horizon=1000
+horizon=100
 noise_level=0.5
 if do_experiments:
     # compare different algorithms
