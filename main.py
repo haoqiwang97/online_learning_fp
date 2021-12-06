@@ -20,6 +20,9 @@ def parse_args():
     parser.add_argument('--recommender', type=str, default="AdaptiveRecommender", help="choose a recommender algorithm")
     parser.add_argument('--data_path', type=str, default="data/NOUN_Sorting_Tables.xlsx")
     parser.add_argument('--time_horizon', type=int, default=10000)
+    parser.add_argument('--noise', type=float, default=0.5)
+    
+    parser.add_argument('--test', type=bool, default=True, help="test or not")
     args = parser.parse_args()
     return args
 
@@ -38,10 +41,10 @@ if args.recommender == "UCB":
     # item_list = [recommender.item_list[i].name for i in range(len(recommender.item_list))]
     # n_plays_list = [recommender.item_list[i].n_plays for i in range(len(recommender.item_list))]
 elif args.recommender == "NearNeighborUCB":
-    recommender = NearNeighborUCB(dist_lookup=dist_lookup, 
-                      time_horizon=args.time_horizon, 
-                      ground_truth='I_2055', 
-                      test=True)
+    recommender = NearNeighborUCB(dist_lookup=dist_lookup,
+                                  time_horizon=args.time_horizon,
+                                  ground_truth='I_2055',
+                                  test=True)
 
 elif args.recommender == "AdaptiveRecommenderSong":
     exptree = ExpTree(b=0.6, n_layers=4, dist_lookup=dist_lookup)
@@ -84,48 +87,47 @@ def run_algo(recommender, n_instances):
     return regret_lists
 
 do_experiments = True
-horizon=10000
-noise_level=0.5
+
 if do_experiments:
     # compare different algorithms
     n_instances = 30
     
     results = {}
     recommender = UCB(dist_lookup=dist_lookup, 
-                      time_horizon=horizon, 
+                      time_horizon=args.time_horizon, 
                       ground_truth='I_2055', 
                       test=True,
-                      noise=noise_level)
+                      noise=args.noise)
     results['UCB'] = run_algo(recommender, n_instances)
     
     
     recommender = NearNeighborUCB(dist_lookup=dist_lookup,
-                           time_horizon=horizon,
+                           time_horizon=args.time_horizon,
                            ground_truth='I_2055',
                            test=True,
-                           noise=noise_level)
+                           noise=args.noise)
     results['NearNeighborUCB'] = run_algo(recommender, n_instances)
 
     
     exptree = ExpTree(b=0.6, n_layers=4, dist_lookup=dist_lookup)
     exptree.build_tree()
     recommender = AdaptiveRecommenderSong(exptree=exptree,
-                                          time_horizon=horizon,
+                                          time_horizon=args.time_horizon,
                                           user=None,
                                           ground_truth='I_2055',
                                           test=True,
-                                          noise=noise_level)
+                                          noise=args.noise)
     results['AdaptiveRecommenderSong'] = run_algo(recommender, n_instances)
     
     
     exptree = ExpTree(b=0.6, n_layers=4, dist_lookup=dist_lookup)
     exptree.build_tree()
     recommender = AdaptiveRecommender(exptree=exptree,
-                                      time_horizon=horizon,
+                                      time_horizon=args.time_horizon,
                                       user=None,
                                       ground_truth='I_2055',
                                       test=True,
-                                      noise=noise_level)
+                                      noise=args.noise)
     results['AdaptiveRecommender'] = run_algo(recommender, n_instances)
     
     # plot all regret results and compare
