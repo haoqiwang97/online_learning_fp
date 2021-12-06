@@ -358,10 +358,10 @@ class AdaptiveRecommender(object):
             if leaf.layer_id > 0:
                 for sibling in leaf.parent.children:
                     # print(sibling.layer_id)
+                    similarity = 1-self.tree.dist_lookup[sibling.name][leaf.name]
                     if sibling.name != leaf.name:
-                        similarity = 1-self.tree.dist_lookup[sibling.name][leaf.name]
                         sibling.n_plays += similarity
-                        sibling.emp_mean = (sibling.emp_mean * (sibling.n_plays-similarity) + similarity * reward)/sibling.n_plays  
+                        sibling.emp_mean = (sibling.emp_mean * (sibling.n_plays-similarity) + similarity * reward)/sibling.n_plays
                         if sibling.n_plays > 0:
                             sibling.bound = sibling.emp_mean + np.sqrt(A_s * np.log(t)/sibling.n_plays)
                         

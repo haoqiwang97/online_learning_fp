@@ -84,7 +84,7 @@ def run_algo(recommender, n_instances):
     return regret_lists
 
 do_experiments = True
-horizon=100000
+horizon=10000
 if do_experiments:
     # compare different algorithms
     n_instances = 30
