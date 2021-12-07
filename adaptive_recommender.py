@@ -98,6 +98,7 @@ class UCB(object):
         ax.set(xlabel='Time', ylabel='Cumulative Regret', title='Cumulative Regret')
         return fig
 
+
 class GraphUCB(object):
     def __init__(self, dist_lookup, time_horizon, ground_truth=None, test=True, noise=0.01):
         self.dist_lookup = dist_lookup
@@ -215,14 +216,18 @@ class NearNeighborUCB(object):
         self.cum_regret_list.append(self.cum_regret)
         
     def update_stats(self, t, item_recommended, reward):
-        #item_recommended=self.item_list[item_recommended_id]
-        #item_recommended.n_plays += 1 # node has attribute n_plays, initial value is 0
-        #item_recommended.emp_mean = (item_recommended.emp_mean * max(1, item_recommended.n_plays-1) + reward)/item_recommended.n_plays # node has attribute emp_mean, initial value is 0
+        # option 1: update neighbors
         for item in self.item_list:
             similarity=1-self.dist_lookup[item_recommended.name][item.name]
-            if t<100 or similarity>0.9:
+            if t<20 or similarity>0.7:
                 item.n_plays += similarity
                 item.emp_mean = (item.emp_mean * (item.n_plays-similarity) + similarity * reward)/item.n_plays  
+
+        # option 2: update all
+        # for item in self.item_list:
+        #     similarity=1-self.dist_lookup[item_recommended.name][item.name]
+        #     item.n_plays += similarity
+        #     item.emp_mean = (item.emp_mean * (item.n_plays-similarity) + similarity * reward)/item.n_plays  
         
         #if t >= len(self.item_list):
             # option 1, original UCB
@@ -233,7 +238,6 @@ class NearNeighborUCB(object):
             #A_s = 2
             #item_recommended.bound = item_recommended.emp_mean + np.sqrt(A_s * np.log(t) / item_recommended.n_plays) # each node has attribute bound
             
-        #option 3 update all
         A_s = 2
         if t>1:
             for item in self.item_list:
@@ -247,7 +251,8 @@ class NearNeighborUCB(object):
             bound_list = [self.item_list[i].bound for i in range(len(self.item_list))]
             item_recommended_id = np.argmax(bound_list)
             item_recommended = self.item_list[item_recommended_id]
-            # print("\niteration =", t, "\nrecommend item =", item_recommended.name)
+            if item_recommended.name == self.ground_truth:
+                print("\niteration =", t, "\nrecommend item =", item_recommended.name)
             
             # get reward from look-up table, or human
             reward = 1 - self.get_loss(item_recommended.name) # reward or loss
@@ -261,6 +266,7 @@ class NearNeighborUCB(object):
         ax.plot(np.arange(self.time_horizon), self.cum_regret_list)
         ax.set(xlabel='Time', ylabel='Cumulative Regret', title='Cumulative Regret')
         return fig        
+
 
 class AdaptiveRecommenderSong(object):
     def __init__(self, exptree, time_horizon, user=None, ground_truth=None, test=True, noise = 0.01):
@@ -350,7 +356,10 @@ class AdaptiveRecommenderSong(object):
                 possible_items = node_selected.children[child_node_selected_id].items # tree has attribute of items, which return all the image items in this node
                 item_recommended = rng.choice(possible_items) # TODO: just recommend this node item
                 # print("epoch =", layer_id, "\niteration =", t, "\nrecommend node =", node_selected_id, "\nrecommend item =", item_recommended)
-                
+
+                if item_recommended == self.ground_truth:
+                    print("\niteration =", t, "\nrecommend item =", item_recommended)
+                           
                 # get reward from look-up table, or human
                 reward = 1 - self.get_loss(item_recommended) # reward or loss
                 # print("reward =", round(reward, 3))
@@ -372,8 +381,10 @@ class AdaptiveRecommenderSong(object):
             # randomly recommend item
             possible_items = node_selected.items
             item_recommended = rng.choice(possible_items)
-            #print("epoch =", layer_id, "\niteration =", t, "\nrecommend node =", node_selected_id, "\nrecommend item =", item_recommended)
-
+            # print("epoch =", layer_id, "\niteration =", t, "\nrecommend node =", node_selected_id, "\nrecommend item =", item_recommended)
+            if item_recommended == self.ground_truth:
+                    print("\niteration =", t, "\nrecommend item =", item_recommended)
+              
             
             reward = 1 - self.get_loss(item_recommended)
             #print("reward =", round(reward, 3))
@@ -487,7 +498,9 @@ class AdaptiveRecommender(object):
                 item_recommended_node = rng.choice(possible_items_node)
                 item_recommended = item_recommended_node.name
                 # print("epoch =", layer_id, "\niteration =", t, "\nrecommend node =", node_selected_id, "\nrecommend item =", item_recommended)
-                
+                # if item_recommended.name == self.ground_truth:
+                #     print("\niteration =", t, "\nrecommend item =", item_recommended.name)
+                                
                 # get reward from look-up table, or human
                 reward = 1 - self.get_loss(item_recommended) # reward or loss
                 # print("reward =", round(reward, 3))
@@ -514,8 +527,9 @@ class AdaptiveRecommender(object):
             item_recommended_node = rng.choice(possible_items_node)
             item_recommended = item_recommended_node.name
             # print("epoch =", layer_id, "\niteration =", t, "\nrecommend node =", node_selected_id, "\nrecommend item =", item_recommended)
-            
-            # get reward from look-up table, or human
+            # if item_recommended.name == self.ground_truth:
+            #     print("\niteration =", t, "\nrecommend item =", item_recommended.name)            
+                # get reward from look-up table, or human
             reward = 1 - self.get_loss(item_recommended) # reward or loss
             # print("reward =", round(reward, 3))
             # update parameters
@@ -642,7 +656,8 @@ class AdaptiveRecommenderAll(object):
             possible_items_node = node_selected.items_node # tree has attribute of items, which return all the image items in this node
             item_recommended_node = rng.choice(possible_items_node)
             item_recommended = item_recommended_node.name
-
+            if item_recommended == self.ground_truth:
+                print("\niteration =", t, "\nrecommend item =", item_recommended)   
             # get reward from look-up table, or human
             reward = 1 - self.get_loss(item_recommended) # reward or loss
             # print("reward =", round(reward, 3))
@@ -688,7 +703,7 @@ class AdaptiveRecommenderRe(object):
         pass
     
     def update_stats(self, t, item_recommended_node, reward):
-        A_s = 2 # A_s is the exploration_exploitation trade-off factor, here use UCB factor
+        A_s = 1 # A_s is the exploration_exploitation trade-off factor, here use UCB factor
         
         # update all parents
         def helper(leaf):
@@ -747,7 +762,8 @@ class AdaptiveRecommenderRe(object):
                 # recommend the representitive node
                 item_recommended = node_selected.name
                 # print("epoch =", layer_id, "\niteration =", t, "\nrecommend node =", node_selected_id, "\nrecommend item =", item_recommended)
-                
+                if item_recommended == self.ground_truth:
+                    print("\niteration =", t, "\nrecommend item =", item_recommended)                
                 # get reward from look-up table, or human
                 reward = 1 - self.get_loss(item_recommended) # reward or loss
                 # update parameters
@@ -769,7 +785,9 @@ class AdaptiveRecommenderRe(object):
             item_recommended_node = rng.choice(possible_items_node)
             item_recommended = item_recommended_node.name
             # print("epoch =", layer_id, "\niteration =", t, "\nrecommend node =", node_selected_id, "\nrecommend item =", item_recommended)
-            
+            if item_recommended == self.ground_truth:
+                print("\niteration =", t, "\nrecommend item =", item_recommended)                
+        
             # get reward from look-up table, or human
             reward = 1 - self.get_loss(item_recommended) # reward or loss
             # print("reward =", round(reward, 3))
