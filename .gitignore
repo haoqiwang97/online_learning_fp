@@ -128,3 +128,4 @@ dmypy.json
 # Pyre type checker
 .pyre/
 q1_ucb_ee381v.py
+short_experiments.pdf

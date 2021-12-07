@@ -20,7 +20,8 @@ class User(object):
 class Item(object):
     def __init__(self, name):
         self.name = name
-        self.n_plays = 0
+        self.n_plays = np.finfo(float).eps#0
+        self.n_plays_true = 0
         self.emp_mean = 0
         self.bound = 1e5
     
@@ -134,31 +135,19 @@ class GraphUCB(object):
         self.cum_regret_list.append(self.cum_regret)
         
     def update_stats(self, t, item_recommended, reward):
-        #item_recommended=self.item_list[item_recommended_id]
-        #item_recommended.n_plays += 1 # node has attribute n_plays, initial value is 0
-        #item_recommended.emp_mean = (item_recommended.emp_mean * max(1, item_recommended.n_plays-1) + reward)/item_recommended.n_plays # node has attribute emp_mean, initial value is 0
         for item in self.item_list:
-            similarity=1-self.dist_lookup[item_recommended.name][item.name]
-            if t<100 or similarity>0.9:
+            similarity = 1 - self.dist_lookup[item_recommended.name][item.name]
+            if t<15 or similarity>0.8:
+            # if similarity>0.6:
                 item.n_plays += similarity
                 item.emp_mean = (item.emp_mean * (item.n_plays-similarity) + similarity * reward)/item.n_plays  
-        
-        #if t >= len(self.item_list):
-            # option 1, original UCB
-            # ft = 1 + t * np.log(t) * np.log(t)
-            # item_recommended.bound = item_recommended.emp_mean + np.sqrt(2 * np.log(ft) / item_recommended.n_plays)
-            
-            # option 2, Linqi Song
-            #A_s = 2
-            #item_recommended.bound = item_recommended.emp_mean + np.sqrt(A_s * np.log(t) / item_recommended.n_plays) # each node has attribute bound
-            
+                
         #option 3 update all
         A_s = 2
         if t>1:
             for item in self.item_list:
                 if item.n_plays > 0:
                     item.bound=item.emp_mean + np.sqrt(A_s * np.log(t)/item.n_plays)
-
 
         
     def run(self):
@@ -193,13 +182,20 @@ class NearNeighborUCB(object):
         self._restart()
         
     def _restart(self):
+        
+        
         item_names = sorted(list(self.dist_lookup.keys()))
+        
+        import random
+        random.shuffle(item_names)
+        # self.item_names = item_names
         self.item_list = [Item(item_name) for item_name in item_names]
         
         self.cum_regret = 0.0
         
         self.cum_regret_list = []
         #self.cum_regret_list.append(self.cum_regret)
+        self.play_ground_truth = []
 
     def get_loss(self, item_recommended):
         if self.test:
@@ -219,32 +215,41 @@ class NearNeighborUCB(object):
         # option 1: update neighbors
         for item in self.item_list:
             similarity=1-self.dist_lookup[item_recommended.name][item.name]
-            if t<20 or similarity>0.7:
+            if similarity == 1.0:
+                item.n_plays_true += 1.0
+            if t<15 or similarity>0.7:
                 item.n_plays += similarity
+                # print(item, 'n_plays', item.n_plays)
                 item.emp_mean = (item.emp_mean * (item.n_plays-similarity) + similarity * reward)/item.n_plays  
-
-        # option 2: update all
-        # for item in self.item_list:
-        #     similarity=1-self.dist_lookup[item_recommended.name][item.name]
-        #     item.n_plays += similarity
-        #     item.emp_mean = (item.emp_mean * (item.n_plays-similarity) + similarity * reward)/item.n_plays  
         
-        #if t >= len(self.item_list):
-            # option 1, original UCB
-            # ft = 1 + t * np.log(t) * np.log(t)
-            # item_recommended.bound = item_recommended.emp_mean + np.sqrt(2 * np.log(ft) / item_recommended.n_plays)
-            
-            # option 2, Linqi Song
-            #A_s = 2
-            #item_recommended.bound = item_recommended.emp_mean + np.sqrt(A_s * np.log(t) / item_recommended.n_plays) # each node has attribute bound
-            
         A_s = 2
         if t>1:
             for item in self.item_list:
                 if item.n_plays > 0:
                     item.bound=item.emp_mean + np.sqrt(A_s * np.log(t)/item.n_plays)
-
-
+        
+        # update item list, cannot show more than 2 times
+        # print(len(self.item_list))
+        
+        
+        # for item_id in range(len(self.item_list))[:]:
+        #     # print(item_id)
+        #     if self.item_list[item_id].n_plays >= 2:
+        #         self.item_list.pop(item_id)
+        #         print(item_id, 'popped')
+        #         print(len(self.item_list))
+        
+        
+        item_id = 0
+        item_list_size = len(self.item_list)
+        while item_id < item_list_size:
+            if self.item_list[item_id].n_plays_true >= 1:
+                # print(self.item_list[item_id], 'popped')
+                self.item_list.pop(item_id)
+                item_list_size -= 1
+                
+            else:
+                item_id += 1
         
     def run(self):
         for t in range(self.time_horizon):
@@ -252,8 +257,8 @@ class NearNeighborUCB(object):
             item_recommended_id = np.argmax(bound_list)
             item_recommended = self.item_list[item_recommended_id]
             if item_recommended.name == self.ground_truth:
-                print("\niteration =", t, "\nrecommend item =", item_recommended.name)
-            
+                # print("\niteration =", t, "\nrecommend item =", item_recommended.name)
+                self.play_ground_truth.append(t)
             # get reward from look-up table, or human
             reward = 1 - self.get_loss(item_recommended.name) # reward or loss
             # print("reward =", round(reward, 3))
