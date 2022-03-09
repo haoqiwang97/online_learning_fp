@@ -20,7 +20,7 @@ def parse_args():
     
     # parser.add_argument('--recommender', type=str, default="UCB", help="choose a recommender algorithm")
     parser.add_argument('--recommender', type=str, default="NearNeighborUCB", help="choose a recommender algorithm")
-    # parser.add_argument('--recommender', type=str, default="AdaptiveRecommenderAll", help="choose a recommender algorithm")
+    # parser.add_argument('--recommender', type=str, default="AdaptiveRecommenderRe", help="choose a recommender algorithm")
     
     parser.add_argument('--data_path', type=str, default="data/NOUN_Sorting_Tables.xlsx")
     parser.add_argument('--time_horizon', type=int, default=50)
@@ -46,36 +46,47 @@ if args.recommender == "NearNeighborUCB":
                                   ground_truth=args.ground_truth,
                                   test=True)
     
-recommender.run()
-fig = recommender.plot_regret()
+elif args.recommender == "AdaptiveRecommenderRe":
+    exptree = ExpTree(b=0.6, n_layers=4, dist_lookup=dist_lookup)
+    exptree.build_tree()
+    recommender = AdaptiveRecommenderRe(exptree=exptree,
+                                      time_horizon=args.time_horizon,
+                                      user=None,
+                                      ground_truth=args.ground_truth,
+                                      test=True,
+                                      noise=args.noise)
+# recommender.run()
+# fig = recommender.plot_regret()
 
-counter = 0
-results_len = [len(value) for key, value in results.items()]
-for length in results_len:
-    if length > 0:
-        counter += 1
-print("counter", counter)
+# counter = 0
+# results_len = [len(value) for key, value in results.items()]
+# for length in results_len:
+#     if length > 0:
+#         counter += 1
+# print("counter", counter)
 
 # do short experiments
-item_names = sorted(list(dist_lookup.keys()))
-results = {key: [] for key in item_names}
-
-def run_short_experiments(results):
+def run_short_experiments(recommender, results):
     # how many times ground truth recommended in 50 steps, and what step
     for groud_truth in item_names:
-        recommender = NearNeighborUCB(dist_lookup=dist_lookup,
-                                      time_horizon=args.time_horizon,
-                                      ground_truth=groud_truth,
-                                      test=True)
+        # recommender = NearNeighborUCB(dist_lookup=dist_lookup,
+        #                               time_horizon=args.time_horizon,
+        #                               ground_truth=groud_truth,
+        #                               test=True)
+        recommender.ground_truth = groud_truth
+        recommender._restart()
         recommender.run()
         results[groud_truth].append(recommender.play_ground_truth)
     return results
 
+item_names = sorted(list(dist_lookup.keys()))
+results = {key: [] for key in item_names}
+
 n_instances = 50
 for i in range(n_instances):
-    results = run_short_experiments(results)
+    results = run_short_experiments(recommender, results)
 
-# plot results
+#%% plot results
 positions = []
 D = np.zeros((n_instances, len(item_names))) # 50 * 64
 i = 0
@@ -85,7 +96,7 @@ for key, value in results.items():
     
     for j, number in enumerate(value):
         if len(number) == 0:
-            D[j, i] = 50
+            D[j, i] = 50  # TODO: deal with this
         else:
             D[j, i] = number[0]
     i += 1

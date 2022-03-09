@@ -14,15 +14,16 @@ import matplotlib.pyplot as plt
 
 import argparse
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description="main.py")
     
-    # parser.add_argument('--recommender', type=str, default="UCB", help="choose a recommender algorithm")
-    parser.add_argument('--recommender', type=str, default="NearNeighborUCB", help="choose a recommender algorithm")
+    parser.add_argument('--recommender', type=str, default="UCB", help="choose a recommender algorithm")
+    # parser.add_argument('--recommender', type=str, default="NearNeighborUCB", help="choose a recommender algorithm")
     # parser.add_argument('--recommender', type=str, default="AdaptiveRecommenderAll", help="choose a recommender algorithm")
     
     parser.add_argument('--data_path', type=str, default="data/NOUN_Sorting_Tables.xlsx")
-    parser.add_argument('--time_horizon', type=int, default=50)
+    parser.add_argument('--time_horizon', type=int, default=10000)
     parser.add_argument('--noise', type=float, default=0.2)
     parser.add_argument('--ground_truth', type=str, default="I_2055")
     parser.add_argument('--test', type=bool, default=True, help="test or not")
@@ -30,6 +31,7 @@ def parse_args():
     parser.add_argument('--do_experiments', type=bool, default=False) # long experiments
     args = parser.parse_args()
     return args
+
 
 args = parse_args()
 print(args)
