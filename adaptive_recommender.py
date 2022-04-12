@@ -170,6 +170,7 @@ class GraphUCB(object):
         ax.set(xlabel='Time', ylabel='Cumulative Regret', title='Cumulative Regret')
         return fig
 
+
 class NearNeighborUCB(object):
     def __init__(self, dist_lookup, time_horizon, ground_truth=None, test=True, noise=0.01):
         self.dist_lookup = dist_lookup
